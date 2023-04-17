@@ -1018,7 +1018,7 @@ class program
         public static void OpenTable() 
         {
             List<string> data = new List<string>();
-            data = File.ReadAllLines("Items.txt").ToList();
+            data = File.ReadAllLines(@"Tables\Items.txt").ToList();
             int n = data.Count;
             for (int i = 1; i <= n - 1; i++)
             {
@@ -1042,7 +1042,7 @@ class program
         public static void OpenTable() 
         {
             List<string> data = new List<string>();
-            data = File.ReadAllLines("Tiles.txt").ToList();
+            data = File.ReadAllLines(@"Tables\Tiles.txt").ToList();
             int n = data.Count;
             for (int i = 1; i <= n-1; i++) 
             {
