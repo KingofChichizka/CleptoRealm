@@ -13,11 +13,12 @@ class program
         g.rooms = new Room[g.roomspan+1, g.roomspan+1];
 
         // e w n s
-        int iter = 14;
+        int iter = 18;
         Random r = new Random(seed);
         if(r.Next(10) == 0) g.levels[g.level].mapt = true;
         g.rooms[0, 0] = new Room(1, 0, 0, 1);
-        List<Point> points = new List<Point>();
+        g.levels[g.level].itemseed = r.Next();
+        List <Point> points = new List<Point>();
         List<string> types = new List<string>();
         points.Add(new Point(0, 1));
         points.Add(new Point(1, 0));
@@ -27,9 +28,11 @@ class program
         {
             for (int j = 0; j <= g.roomspan; j++)
             {
-                if (r.Next(20) == 0 && new Point(i, j) != new Point(0, 0) && new Point(i, j) != new Point(0, 1) && new Point(i, j) != new Point(1, 0)) g.rooms[i, j] = new Room();
+                if (r.Next(6) == 0 && new Point(i, j) != new Point(0, 0) && new Point(i, j) != new Point(0, 1) && new Point(i, j) != new Point(1, 0)) g.rooms[i, j] = new Room();
             }
         }
+
+        /// Building labirynth
         for (int k = 0; k <= iter; k++)
         {
             List<Point> bpoints = new List<Point>();
@@ -67,8 +70,15 @@ class program
                 if (g.rooms[x, y] == null)
                 {
                     g.rooms[x, y] = new Room(e, w, n, s);
+                    if (r.Next(30) == 0 && g.rooms[x, y].E != null) g.rooms[x, y].E.type = "nowall";
+                    if (r.Next(30) == 0 && g.rooms[x, y].W != null) g.rooms[x, y].W.type = "nowall";
+                    if (r.Next(30) == 0 && g.rooms[x, y].S != null) g.rooms[x, y].S.type = "nowall";
+                    if (r.Next(30) == 0 && g.rooms[x, y].N != null) g.rooms[x, y].N.type = "nowall";
+
+                    //g.rooms[x, y].chest = true;
+                    if ((g.rooms[x, y].type == "plain" && r.Next(6) == 0) || (g.rooms[x, y].type == "hidden" && r.Next(2) == 0)) g.rooms[x, y].chest = true;
                     if (r.Next(7) == 0 || k == 0) g.levels[g.level].exitroom = new Point(x, y);
-                    if (r.Next(720) == 0 || i != 0 && new Point(x, y) != g.levels[g.level].exitroom && new Point(x, y) != g.levels[g.level].keyroom) g.levels[g.level].maproom = new Point(x, y);
+                    if (r.Next(720) == 0 && i != 0 && new Point(x, y) != g.levels[g.level].exitroom && new Point(x, y) != g.levels[g.level].keyroom) g.levels[g.level].maproom = new Point(x, y);
                     if (types[i] == "hidden") g.rooms[x, y].type = "hidden";
                     if (((r.Next(12) == 0 && k >= 7) || k == 0) && g.rooms[x, y].type != "egress" && g.rooms[x, y].type != "hidden") g.levels[g.level].keyroom = new Point(x, y);
                     else if (r.Next(40) == 0 && k >= 7 && types[i] != "hidden") g.rooms[x, y].type = "egress";
@@ -103,6 +113,8 @@ class program
             types = btypes;
             //Console.WriteLine(points.Count);
         }
+
+        /// Door type fix
         for (int i = 0; i <= g.roomspan; i++)
         {
             for (int j = 0; j <= g.roomspan; j++)
@@ -157,9 +169,27 @@ class program
                             }
                             break;
                     }
+                    if (i != 0 && g.rooms[i - 1, j] != null && g.rooms[i-1, j].E != null && g.rooms[i, j].W != null && g.rooms[i, j].W.type == "nowall")
+                    {
+                        g.rooms[i - 1, j].SetE("nowall");
+                    }
+                    if (i != g.roomspan && g.rooms[i + 1, j] != null && g.rooms[i+1, j].W != null && g.rooms[i, j].E != null && g.rooms[i, j].E.type == "nowall")
+                    {
+                        g.rooms[i + 1, j].SetW("nowall");
+                    }
+                    if (j != 0 && g.rooms[i, j - 1] != null && g.rooms[i, j-1].S != null && g.rooms[i, j].N != null && g.rooms[i, j].N.type == "nowall")
+                    {
+                        g.rooms[i, j - 1].SetS("nowall");
+                    }
+                    if (j != g.roomspan && g.rooms[i, j + 1] != null && g.rooms[i, j+1].N != null && g.rooms[i, j].S != null && g.rooms[i, j].S.type == "nowall")
+                    {
+                        g.rooms[i, j + 1].SetN("nowall");
+                    }
                 }
             }
         }
+
+        /// Filling tiles
         for (int i = 0; i <= g.roomspan; i++)
         {
             for (int j = 0; j <= g.roomspan; j++)
@@ -174,7 +204,7 @@ class program
                         if (g.rooms[j, i] == null || g.rooms[j, i].type == "obst") g.loaded[i * g.roomsize + k + 1, j * g.roomsize + l + 1] = 2;
                         else
                         {
-                            if (k == g.roomsize - 1 || l == g.roomsize - 1)
+                            if ((k == g.roomsize - 1 && ((g.rooms[j, i].E != null && g.rooms[j, i].E.type != "nowall") || (g.rooms[j, i].E == null))) || (l == g.roomsize - 1 && ((g.rooms[j, i].S != null && g.rooms[j, i].S.type != "nowall") || (g.rooms[j, i].S == null))))
                             {
                                 if ((k == x && g.rooms[j, i].E != null) || (l == y && g.rooms[j, i].S != null))
                                 {
@@ -189,22 +219,27 @@ class program
                             }
                             else
                             {
-                                if (r.Next(30) == 0)
+                                if (r.Next(20) == 0)
                                 {
                                     int rand = r.Next(30);
-                                    if (rand == 0 || g.rooms[j, i].type == "egress") g.loaded[i * g.roomsize + k + 1, j * g.roomsize + l + 1] = 5;
-                                    else if (((Between(rand, 1, 7) && g.rooms[j, i].type == "egress") || (Between(rand, 16, 28) && g.rooms[j, i].type == "hidden")) && (i != 0 && j != 0)) g.loaded[i * g.roomsize + k + 1, j * g.roomsize + l + 1] = 8;
+                                    if (rand == 0) g.loaded[i * g.roomsize + k + 1, j * g.roomsize + l + 1] = 5;
                                     else if (Between(rand, 8, 12)) g.loaded[i * g.roomsize + k + 1, j * g.roomsize + l + 1] = 18;
                                     else if (Between(rand, 13, 15)) g.loaded[i * g.roomsize + k + 1, j * g.roomsize + l + 1] = 12;
                                     else g.loaded[i * g.roomsize + k + 1, j * g.roomsize + l + 1] = 19;
                                 }
                                 else g.loaded[i * g.roomsize + k + 1, j * g.roomsize + l + 1] = 0;
+                                if (r.Next(3) == 0 && g.loaded[i * g.roomsize + k + 1, j * g.roomsize + l + 1] == 0) 
+                                {
+                                    int r2 = r.Next(30);
+                                    if (g.rooms[j, i].chest && (((g.rooms[j, i].type == "plain" && Between(r2, 1, 12)) || (g.rooms[j, i].type == "hidden" && Between(r2, 1, 25))))) g.loaded[i * g.roomsize + k + 1, j * g.roomsize + l + 1] = 8;
+                                }
                             }
                         }
                     }
                 }
             }
         }
+
         g.loaded[2, 2] = 3;
         g.loaded[g.levels[g.level].exitroom.Y * g.roomsize + 1 + 1, g.levels[g.level].exitroom.X * g.roomsize + 1 + 1] = 4;
         if(g.levels[g.level].mapt) g.loaded[g.levels[g.level].maproom.Y * g.roomsize + 1 + 1, g.levels[g.level].maproom.X * g.roomsize + 1 + 1] = 22;
@@ -257,7 +292,13 @@ class program
         int ret = 0;
         while(forb.Contains(ret)) 
         {
-            ret = r.Next(Items.count);
+            int sex = r.Next(1, Items.freq[Items.freq.Count-1]+2);
+            while (!Items.freq.Contains(sex)) 
+            {
+                sex--;
+            }
+            ret = Items.freq.IndexOf(sex);
+            //ret = r.Next(Items.count);
         }
         return ret;
     }
@@ -287,12 +328,12 @@ class program
         g.ui[9] = "---Inventory";
         for (int i = 0; i <= g.visinv; i++)
         {
-            if (g.invsel == i)
+            if (g.invsel == i + g.invoffset)
             {
-                if (g.inventory[i].id != 0) g.ui[10 + i] = $">>>[{i}] " + g.inventory[i].name + " | Press i for info    ";
-                else g.ui[10 + i] = $">>>[{i}] " + g.inventory[i].name+"                 ";
+                if (g.inventory[i].id != 0) g.ui[10 + i] = $">>>[{i + g.invoffset}] " + g.inventory[i + g.invoffset].name + " | Press i for info    ";
+                else g.ui[10 + i] = $">>>[{i + g.invoffset}] " + g.inventory[i + g.invoffset].name+"                 ";
             }
-            else g.ui[10 + i] = $"   [{i}] " + g.inventory[i].name;
+            else g.ui[10 + i] = $"   [{i + g.invoffset}] " + g.inventory[i + g.invoffset].name;
         }
         if (g.debug) g.ui[g.ui.Length - 1] = "!DEBUG MODE ON!";
         else g.ui[g.ui.Length - 1] = g.lineempty;
@@ -334,7 +375,7 @@ class program
             case 1:
                 char anw = ' ';
                 int sel = 0;
-                Random r = new Random();
+                Random r = new Random(g.levels[g.level].itemseed);
                 int[] contents = new int[10];
                 if (g.levels[g.level].chests.Contains(new Point(g.plx + D(g.direction).X, g.ply + D(g.direction).Y))) contents = g.levels[g.level].chestcont[g.levels[g.level].chests.IndexOf(new Point(g.plx + D(g.direction).X, g.ply + D(g.direction).Y))];
                 else 
@@ -375,12 +416,30 @@ class program
                             }
                             break;
                         case 'l':
-                            if (g.invsel != 7) g.invsel++;
-                            else g.invsel = 0;
+                            if (g.invsel - g.invoffset < g.visinv) g.invsel++;
+                            else if (g.invsel == g.inventory.Length - 1)
+                            {
+                                g.invsel = 0;
+                                g.invoffset = 0;
+                            }
+                            else
+                            {
+                                g.invsel++;
+                                g.invoffset++;
+                            }
                             break;
                         case 'o':
-                            if (g.invsel != 0) g.invsel--;
-                            else g.invsel = 7;
+                            if (g.invsel - g.invoffset > 0) g.invsel--;
+                            else if (g.invsel == 0)
+                            {
+                                g.invsel = g.inventory.Length - 1;
+                                g.invoffset = g.inventory.Length - 1 - g.visinv;
+                            }
+                            else
+                            {
+                                g.invsel--;
+                                g.invoffset--;
+                            }
                             break;
                         case 'z':
                             if (g.inventory[g.invsel].id != 0 && contents[sel] == 0) 
@@ -909,12 +968,30 @@ class program
                     Command();
                     break;
                 case 'l':
-                    if (g.invsel != 7) g.invsel++;
-                    else g.invsel = 0;
+                    if (g.invsel - g.invoffset < g.visinv) g.invsel++;
+                    else if (g.invsel == g.inventory.Length - 1)
+                    {
+                        g.invsel = 0;
+                        g.invoffset = 0;
+                    }
+                    else 
+                    {
+                        g.invsel++;
+                        g.invoffset++;
+                    }
                     break;
                 case 'o':
-                    if (g.invsel != 0) g.invsel--;
-                    else g.invsel = 7;
+                    if (g.invsel - g.invoffset > 0) g.invsel--;
+                    else if (g.invsel == 0)
+                    {
+                        g.invsel = g.inventory.Length - 1;
+                        g.invoffset = g.inventory.Length - 1 - g.visinv;
+                    }
+                    else
+                    {
+                        g.invsel--;
+                        g.invoffset--;
+                    }
                     break;
                 case 'z':
                     g.inventory[g.invsel] = new Thing();
@@ -938,6 +1015,7 @@ class program
         public static int primaryseed = 0;
         public static int visinv = 7;
         public static Point current = new Point(0, 0);
+        public static int invoffset = 0;
         public static int screen = 0;
         public static int invsel = 0;
         public static int roomspan = 50;
@@ -953,7 +1031,7 @@ class program
         public static string[] ui = new string[size - 1];
         public static int[,] space = new int[size, size];
         public static Room[,] rooms = new Room[100, 100];
-        public static Thing[] inventory = new Thing[8];
+        public static Thing[] inventory = new Thing[30];
         public static string borderoffset = "   ";
         public static string message = "";
         public static int[] unpassable = { 2, 6 };
@@ -967,6 +1045,7 @@ class program
     }
     public class Level
     {
+        public int itemseed = 0;
         public bool mapt = false;
         public int hiddencount = 0;
         public List<Change> changes = new List<Change>();
@@ -1013,8 +1092,10 @@ class program
     public static class Items 
     {
         public static int count;
+        public static int maxfreq;
         public static List<string> name = new List<string>();
         public static List<string> desc = new List<string>();
+        public static List<int> freq = new List<int>();
         public static void OpenTable() 
         {
             List<string> data = new List<string>();
@@ -1025,8 +1106,20 @@ class program
                 List<string> row = new List<string>();
                 row = data[i].Split(' ').ToList();
 
-                name.Add(row[1].Replace('_', ' '));
-                desc.Add(row[2].Replace('_', ' '));
+                if (i == 1) freq.Add(0);
+                else 
+                {
+                    switch (row[1]) 
+                    {
+                        case "myth": freq.Add(freq[i - 2] + 1); break;
+                        case "obsc": freq.Add(freq[i - 2] + 2); break;
+                        case "rare": freq.Add(freq[i - 2] + 3); break;
+                        case "norm": freq.Add(freq[i - 2] + 4); break;
+                        case "freq": freq.Add(freq[i - 2] + 6); break;
+                    }
+                }
+                name.Add(row[2].Replace('_', ' '));
+                desc.Add(row[3].Replace('_', ' '));
             }
             count = name.Count;
         }
@@ -1063,6 +1156,7 @@ class program
     public class Room 
     {
         public string type = "plain";
+        public bool chest = false;
         public Direction E, W, S, N = new Direction();
         public Room(int e, int w, int n, int s) 
         {
